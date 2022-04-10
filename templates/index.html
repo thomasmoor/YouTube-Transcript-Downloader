@@ -1,0 +1,31 @@
+<html>
+  <body>
+
+    <!-- Tool Description -->
+    <h1>YouTube Video to Transcript</h1>
+
+    <!-- Parameters form -->
+    <form action="" method="post">
+
+      <!-- URL Input field -->
+      <p>URL:</p>
+      <p><input type="text" name="url" /></p>
+
+      <!-- Include links button -->
+      <!--p>Include Links:</p>
+      <!label class="switch">
+        <input type="checkbox" name="links" />
+        <span class="slider round"></span>
+      </label-->
+
+      <!-- Submit button -->
+      <p><input type="submit" name="transcript" value="Get Transcript"/></p>
+
+      <!-- Download button -->
+      <p><input type="submit" name="download" value="Download"/></p>
+
+      <!-- Result area -->
+      <textarea rows="30" name="text" style="width: 100%">{{ text }}</textarea>
+    </form>
+  </body>
+</html>
