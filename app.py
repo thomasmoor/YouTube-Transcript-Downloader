@@ -1,4 +1,5 @@
 from flask import Flask, json, jsonify, redirect, render_template, request, session, make_response, url_for
+from flask_session import Session
 from flask_cors import CORS, cross_origin
 import pytube as pt
 import re
@@ -11,24 +12,19 @@ from youtube_transcript_api import YouTubeTranscriptApi
 #
 
 app = Flask(__name__)
+
 # Using session to avoid a "Confirm Form Resubmission" pop-up:
 # Redirect and pass form values from post to get method
-app.secret_key = 'secret'
+# app.secret_key = 'my_secret_key'
+app.config['SECRET_KEY'] = "your_secret_key" 
+app.config['SESSION_TYPE'] = 'filesystem' 
+app.config['SESSION_PERMANENT']= False
+app.config.from_object(__name__)
+Session(app)
+
+# Enable Cross-Origin Resource Sharing for API use from another IP and/or port
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
-
-def download(vid):
-
-    print("vid    "+vid)
-    yt=getYT(vid)
-
-    # YouTube object
-    print("Video  author: "+yt.author+" title: "+yt.title+" length: "+str(yt.length)+" views: " + str(yt.views)+" rating: "+str(yt.rating))
-          
-    captions=getCaptions(yt)
-        
-    return captions
-
 
 def extract_video_id(v):
     if (v.startswith("https://www.youtube.com/watch?v=")):
@@ -78,7 +74,7 @@ def get_transcript(url):
     if re.match('.*[.!?]$',line):
       s+="\n"
     s+="\n"
-  print(s)
+  # print(s)
   return s
 
 # get_transcript
@@ -144,7 +140,7 @@ def slash():
     # Get the transcript
     if url_ok(url):
       text=get_transcript(url)
-      print(f"transcript len={len(text)}")
+      print(f"text len={len(text)}")
       print(text)
     else:
       text="Could not get transcript"
@@ -160,15 +156,14 @@ def slash():
 
   # Redirect to avoid "Form Resubmission" pop-up
   if request.method=='POST':
-    print("branch: redirect")
+    print(f"branch: redirect - text length: {len(text)}")
     session['text'] = text
     return redirect(url_for('slash'))
   
   # Render page
   else:
-    print("render index.html")
-    text=session.get('text','session get text')
-    print(f"render index.html text= {text}")
+    text=session.get('text','text variable not found in session')
+    print(f"render index.html text length= {len(text)}")
     return render_template("index.html", text=text)  
 
 if __name__ == '__main__':
