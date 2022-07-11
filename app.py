@@ -1,6 +1,7 @@
 from flask import Flask, json, jsonify, redirect, render_template, request, session, make_response, url_for
-from flask_session import Session
 from flask_cors import CORS, cross_origin
+from flask_session import Session
+import logging
 import pytube as pt
 import re
 from xml.etree.ElementTree import fromstring, ElementTree
@@ -11,20 +12,41 @@ from youtube_transcript_api import YouTubeTranscriptApi
 # pytube: https://pytube.io/en/latest/api.html#youtube-object
 #
 
-app = Flask(__name__)
+logging.basicConfig(
+  filename='transcribeYT.log',
+  # encoding='utf-8',
+  format='%(asctime)s %(levelname)s:%(message)s',
+  level=logging.DEBUG
+)
+logging.debug("Logging activated")
 
+app = Flask(__name__)
 # Using session to avoid a "Confirm Form Resubmission" pop-up:
 # Redirect and pass form values from post to get method
-# app.secret_key = 'my_secret_key'
+app.secret_key = 'secret'
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
+
+# Use Flask server session to avoid a "Confirm Form Resubmission" pop-up:
+# Redirect and pass form values from post to get method
 app.config['SECRET_KEY'] = "your_secret_key" 
 app.config['SESSION_TYPE'] = 'filesystem' 
 app.config['SESSION_PERMANENT']= False
 app.config.from_object(__name__)
 Session(app)
 
-# Enable Cross-Origin Resource Sharing for API use from another IP and/or port
-cors = CORS(app)
-app.config['CORS_HEADERS'] = 'Content-Type'
+def download(vid):
+
+    print("vid    "+vid)
+    yt=getYT(vid)
+
+    # YouTube object
+    print("Video  author: "+yt.author+" title: "+yt.title+" length: "+str(yt.length)+" views: " + str(yt.views)+" rating: "+str(yt.rating))
+          
+    captions=getCaptions(yt)
+        
+    return captions
+
 
 def extract_video_id(v):
     if (v.startswith("https://www.youtube.com/watch?v=")):
@@ -41,11 +63,8 @@ def extract_video_id(v):
     return v2
 # extract_video_id
 
-def get_transcript(url):
+def get_transcript(video_id):
 
-  # Extract the videoid from the url
-  video_id=extract_video_id(url)
-    
   # Retrieve the transcript with youtube-transcript-api
   transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
   t = transcript_list.find_transcript(['en'])  
@@ -74,7 +93,7 @@ def get_transcript(url):
     if re.match('.*[.!?]$',line):
       s+="\n"
     s+="\n"
-  # print(s)
+  print(s)
   return s
 
 # get_transcript
@@ -110,18 +129,41 @@ def url_ok(url):
 # url_ok
 
 # API endpoint
-@app.route('/transcript', methods=['POST'])
+@app.route('/transcribeyt', methods=['GET','POST'])
 @cross_origin()
 def transcript():
-  d=json.loads(request.data)
-  print("d:")
-  print(d)
-  url=d['url']
-  print(f"transcript url: {url}")
+  logging.debug(f"Got transcript request. request:")
+  logging.debug(request)
+  logging.debug("request.data:")
+  logging.debug(request.data)
+  logging.debug("request.form:")
+  logging.debug(request.form)
+  if request.data:
+    d=json.loads(request.data)
+  else:
+    d=request.form
+  logging.debug("d:")
+  logging.debug(d)
+  url=d['video']
+  logging.debug(f"transcript_yt url: {url}")
   if url_ok(url):
-    transcript=get_transcript(url)
-    print(f"transcript len={len(transcript)}")
-    return jsonify(transcript)
+    # Extract the video id from the url
+    video_id=extract_video_id(url)
+    # Get the metadata
+    yt=get_yt(video_id)
+    # Get the transcript
+    transcript=get_transcript(video_id)
+    logging.debug(f"transcript len={len(transcript)}")
+    ret={
+      "author": yt.author,
+      "id": video_id,
+      "title": yt.title,
+      "transcript": transcript,
+    }
+    return jsonify(ret)
+    # js=json.dumps(ret)
+    # logging.debug(f"transcribe_yt - i:{video_id} a:{yt.author} t:{yt.title}")
+    # return Response(js)
   return jsonify("Could not get the transcript")
 # transcript
 
@@ -130,20 +172,17 @@ def transcript():
 def slash():
   print(f"slash - got request: {request.method}")
 
-  # Default text
-  text='Enter or copy/paste a URL in the box above \nand press "Get Transcript"'
-
   # Transcript request
   if 'transcript' in request.form:
     url = request.form["url"]
     print(f"Branch: transcript - url: {url}")
     # Get the transcript
     if url_ok(url):
-      text=get_transcript(url)
-      print(f"text len={len(text)}")
+      video_id=extract_video_id(url)
+      text=get_transcript(video_id)
+      print(f"transcript len={len(text)}")
       print(text)
-    else:
-      text="Could not get transcript"
+      session['text']=text;
       
   # Download request
   elif 'download' in request.form:
@@ -156,15 +195,15 @@ def slash():
 
   # Redirect to avoid "Form Resubmission" pop-up
   if request.method=='POST':
-    print(f"branch: redirect - text length: {len(text)}")
-    session['text'] = text
+    print("branch: redirect")
     return redirect(url_for('slash'))
   
   # Render page
   else:
-    text=session.get('text','text variable not found in session')
-    print(f"render index.html text length= {len(text)}")
+    print("render index.html")
+    text=session.get('text','session get text')
+    print(f"render index.html text= {text}")
     return render_template("index.html", text=text)  
 
 if __name__ == '__main__':
-  app.run()
+  app.run(debug=True,host='0.0.0.0',port=5004)
