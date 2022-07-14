@@ -2,10 +2,9 @@
 
 Retrieves the text (transcript) of a given YouTube video (identified by its URL)
 
-Runs on Flask
+- Backend Runs on Flask (app.py)
+- FrontEnd can run on:
+  - Next.js (thomasmoor.org)
+  - Blogger (blogger.js)
+  - Wordpress plugin (tmo.YouTubeTranscript.zip)
 
-Requirements:
-- flask
-- flask_cors
-- pytube
-- youtube_transcript_api
