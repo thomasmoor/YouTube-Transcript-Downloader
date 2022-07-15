@@ -2,8 +2,8 @@
   <div id="myDiv">
     <label htmlFor='video'>YouTube Video URL:</label>
     <input type='text' required id='video' />
-    <label htmlFor='category'>Category:</label>
-    <input type='text' id='category' />
+    <!-- label htmlFor='category'>Category:</label>
+    <input type='text' id='category' /-->
     <button onclick="exec()">Transcript</button>
     <br/>
     <button onclick="saveAsFile()">Download</button>
@@ -28,7 +28,7 @@
     // console.log("this.video: ")
     // console.log(this.video.value)
     
-    const url = 'https://thomasmoor.org/transcribeyt';
+    const api = 'https://thomasmoor.org/transcribeyt';
 
     // post body data
     const enteredData = {
@@ -36,7 +36,7 @@
     };
     
     // create request object
-    const request = new Request(url, {
+    const request = new Request(api, {
       method: 'POST',
       body: JSON.stringify(enteredData),
       headers: new Headers({
@@ -61,7 +61,7 @@
   
   async function saveAsFile() {
       console.log("saveAsFile")
-      var prefix = document.getElementById("category").value;
+      var prefix = ""; // document.getElementById("category").value;
       var textToSave = document.getElementById("text").value;
       console.log("p: "+prefix+" t: "+textToSave)
 
