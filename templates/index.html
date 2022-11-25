@@ -25,7 +25,10 @@
       <p><input type="submit" name="download" value="Download"/></p>
 
       <!-- Result area -->
-      <textarea rows="30" name="text" style="width: 100%">{{ text }}</textarea>
+	  <div><b>Transcript:</b></div>
+      <textarea rows="30" name="text" style="width: 100%">{{ result.transcript }}</textarea>
+	  <div><b>Summary:</b></div>
+      <textarea rows="30" name="text" style="width: 100%">{{ result.summary }}</textarea>
     </form>
   </body>
 </html>
